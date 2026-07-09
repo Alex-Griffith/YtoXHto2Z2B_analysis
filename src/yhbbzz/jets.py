@@ -37,6 +37,7 @@ class JetSelector:
         if len(selected) >= 2:
             dijet = add(selected[0], selected[1])
             candidate = {"jet1": selected[0], "jet2": selected[1],
-                         "mass": dijet["mass"], "pt": dijet["pt"]}
+                         "mass": dijet["mass"], "pt": dijet["pt"],
+                         "eta": dijet["eta"], "phi": dijet["phi"],
+                         "rapidity": dijet["rapidity"]}
         return {"jets": selected, "candidate": candidate, "pass_two_jets": candidate is not None}
-

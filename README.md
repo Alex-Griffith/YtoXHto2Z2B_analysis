@@ -30,10 +30,18 @@ Run locally:
 ```bash
 scripts/run_analysis.sh \
   /eos/user/b/bfan/YtoXHto2Z2B_MC_generation/condor_nanoaod_1000/20260709T072256Z/job_0000_NANOAODSIM.root \
-  outputs/signal_MX1000_MY300.json
+  outputs/signal_MX1000_MY300.json \
+  outputs/signal_MX1000_MY300.root
 ```
 
 The default physics and object definitions are in `configs/default.json`.
+The JSON contains the cutflow and configuration snapshot. The ROOT file
+contains a compact `Events` plotting tree with one row per processed event,
+selection flags, event identifiers and weights, the reconstructed
+`H -> ZZ -> 4l`, `Y -> bb`, and combined `X -> YH` kinematics, both selected
+jets and their UParT scores, four selected leptons, MET, and mass hypotheses.
+Missing candidates use `-99`. In particular, `mass4l`, `massbb`, and
+`massbb4l` reconstruct the H, Y, and X candidates.
 
 ## Design rules
 

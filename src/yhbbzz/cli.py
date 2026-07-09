@@ -11,14 +11,16 @@ def main():
     parser.add_argument("input", help="Input NanoAOD ROOT file")
     parser.add_argument("-c", "--config", default=str(repo / "configs" / "default.json"))
     parser.add_argument("-o", "--output", default="outputs/cutflow.json")
+    parser.add_argument("-r", "--root-output",
+                        help="Plotting ROOT ntuple (default: JSON output with .root suffix)")
     parser.add_argument("-n", "--max-events", type=int, default=-1)
     args = parser.parse_args()
 
-    result = run(args.input, args.config, args.output, args.max_events)
+    result = run(args.input, args.config, args.output, args.max_events, args.root_output)
     print(json.dumps(result["cutflow"], indent=2, sort_keys=True))
     print(f"Wrote {args.output}")
+    print(f"Wrote {result['plot_ntuple']}")
 
 
 if __name__ == "__main__":
     main()
-

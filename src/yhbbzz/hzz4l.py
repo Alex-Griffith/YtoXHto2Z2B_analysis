@@ -126,7 +126,14 @@ def select_hzz4l(tree, objects, cuts):
     _, _, z1, z2, four_vector, four = min(valid, key=lambda x: (x[0], x[1]))
     result["pass_zz"] = True
     result["pass_h_window"] = cuts["h_mass_min"] < four_vector["mass"] < cuts["h_mass_max"]
-    result["candidate"] = {"z1_mass": z1["p4"]["mass"], "z2_mass": z2["p4"]["mass"],
-                           "mass4l": four_vector["mass"], "pt4l": four_vector["pt"],
-                           "leptons": four}
+    ordered_leptons = [z1["l1"], z1["l2"], z2["l1"], z2["l2"]]
+    result["candidate"] = {
+        "z1_mass": z1["p4"]["mass"], "z2_mass": z2["p4"]["mass"],
+        "z1": z1["p4"], "z2": z2["p4"],
+        "mass4l": four_vector["mass"], "pt4l": four_vector["pt"],
+        "pt": four_vector["pt"], "eta": four_vector["eta"],
+        "phi": four_vector["phi"], "mass": four_vector["mass"],
+        "rapidity": four_vector["rapidity"],
+        "leptons": ordered_leptons,
+    }
     return result

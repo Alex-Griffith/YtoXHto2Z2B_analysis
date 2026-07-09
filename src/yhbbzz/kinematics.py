@@ -32,5 +32,5 @@ def add(*objects):
     mass = math.sqrt(max(0.0, energy * energy - momentum * momentum))
     eta = math.asinh(pz / pt) if pt > 0 else 0.0
     phi = math.atan2(py, px)
-    return {"pt": pt, "eta": eta, "phi": phi, "mass": mass}
-
+    rapidity = 0.5 * math.log((energy + pz) / (energy - pz)) if energy > abs(pz) else 0.0
+    return {"pt": pt, "eta": eta, "phi": phi, "mass": mass, "rapidity": rapidity}
