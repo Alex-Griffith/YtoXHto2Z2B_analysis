@@ -19,6 +19,28 @@ def _branch_names(tree):
     return {branch.GetName() for branch in tree.GetListOfBranches()}
 
 
+def _normalize_input_path(path):
+    path = str(path).strip()
+    if path.startswith("/store/"):
+        return f"root://cms-xrd-global.cern.ch/{path}"
+    return path
+
+
+def _input_files(input_path):
+    input_path = str(input_path)
+    if input_path.endswith(".txt") and not input_path.startswith("root://"):
+        files = []
+        for line in Path(input_path).read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            files.append(_normalize_input_path(line))
+        if not files:
+            raise RuntimeError(f"Input file list is empty: {input_path}")
+        return files
+    return [_normalize_input_path(input_path)]
+
+
 def _fill_object(row, prefix, obj):
     if obj is None:
         return
@@ -28,24 +50,63 @@ def _fill_object(row, prefix, obj):
     row[f"mass{prefix}" if prefix.startswith("L") else f"m{prefix}"] = obj["mass"]
 
 
-def run(input_path, config_path, output_path, max_events=-1, root_output_path=None):
+def _resolve_sample_type(config, branches, requested):
+    sample_type = (requested or config.get("sample_type", "auto")).lower()
+    if sample_type not in {"auto", "data", "mc"}:
+        raise ValueError("sample_type must be one of: auto, data, mc")
+    has_gen = {"nGenPart", "GenPart_pdgId", "GenPart_genPartIdxMother"}.issubset(branches)
+    if sample_type == "auto":
+        return "mc" if has_gen else "data"
+    return sample_type
+
+
+def _resolve_nanoaod_version(config, requested):
+    version = (requested or config.get("nanoaod_version", "auto")).lower()
+    if version not in {"auto", "v12", "v15"}:
+        raise ValueError("nanoaod_version must be one of: auto, v12, v15")
+    return version
+
+
+def _infer_nanoaod_version(branches):
+    if "Jet_btagUParTAK4B" in branches:
+        return "v15-like"
+    if "Jet_btagPNetB" in branches:
+        return "v12-like"
+    return "unknown"
+
+
+def run(input_path, config_path, output_path, max_events=-1, root_output_path=None,
+        sample_type=None, nanoaod_version=None):
     import ROOT
 
     config = json.loads(Path(config_path).read_text())
     signal = config["signal"]
     objects = config["objects"]
 
-    root_file = ROOT.TFile.Open(str(input_path))
-    if not root_file or root_file.IsZombie():
-        raise RuntimeError(f"Cannot open NanoAOD file: {input_path}")
-    tree = root_file.Get("Events")
-    if not tree:
-        raise RuntimeError("Input does not contain an Events tree")
+    input_files = _input_files(input_path)
+    tree = ROOT.TChain("Events")
+    for path in input_files:
+        if tree.Add(path) == 0:
+            raise RuntimeError(f"Cannot add NanoAOD file to Events chain: {path}")
 
     branches = _branch_names(tree)
+    if not branches:
+        raise RuntimeError("Input does not contain an Events tree with branches")
+    requested_nanoaod_version = _resolve_nanoaod_version(config, nanoaod_version)
+    resolved_sample_type = _resolve_sample_type(config, branches, sample_type)
+    is_mc = resolved_sample_type == "mc"
+    truth_branches = {"nGenPart", "GenPart_pdgId", "GenPart_status", "GenPart_genPartIdxMother"}
+    truth_enabled = is_mc and truth_branches.issubset(branches)
     trigger_names = [name for name in config["triggers"] if name in branches]
-    is_mc = {"nGenPart", "GenPart_pdgId", "GenPart_genPartIdxMother"}.issubset(branches)
-    jet_selector = JetSelector(objects, config["jets"])
+    missing_triggers = [name for name in config["triggers"] if name not in branches]
+    warnings = []
+    if missing_triggers:
+        warnings.append(f"Missing HLT branches skipped: {', '.join(missing_triggers)}")
+    if is_mc and not truth_enabled:
+        warnings.append("MC sample requested but truth GenPart branches are incomplete; truth matching skipped.")
+
+    jet_selector = JetSelector(objects, config["jets"], branches)
+    warnings.extend(jet_selector.warnings)
     if root_output_path is None:
         root_output_path = str(Path(output_path).with_suffix(".root"))
     ntuple = PlotNtuple(root_output_path, ROOT)
@@ -85,7 +146,7 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
             counts["selected_signal_region"] += 1
 
         truth = {}
-        if is_mc:
+        if truth_enabled:
             truth = classify_signal(
                 _as_list(tree.GenPart_pdgId),
                 _as_list(tree.GenPart_status),
@@ -105,8 +166,8 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
             "luminosityBlock": getattr(tree, "luminosityBlock", 0),
             "event": getattr(tree, "event", entry),
             "isMC": is_mc,
-            "genWeight": getattr(tree, "genWeight", 1.0),
-            "pileup_nTrueInt": getattr(tree, "Pileup_nTrueInt", -99.0),
+            "genWeight": getattr(tree, "genWeight", 1.0) if is_mc and "genWeight" in branches else 1.0,
+            "pileup_nTrueInt": getattr(tree, "Pileup_nTrueInt", -99.0) if is_mc and "Pileup_nTrueInt" in branches else -99.0,
             "nElectron": tree.nElectron, "nMuon": tree.nMuon, "nJet": tree.nJet,
             "nTightEle": hzz["n_tight_electrons"],
             "nTightMu": hzz["n_tight_muons"],
@@ -176,19 +237,27 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
 
     result = {
         "input": str(input_path),
+        "inputs": input_files,
         "is_mc": is_mc,
+        "sample_type": resolved_sample_type,
+        "nanoaod_version": {
+            "requested": requested_nanoaod_version,
+            "inferred": _infer_nanoaod_version(branches),
+        },
         "entries_processed": stop,
         "plot_ntuple": str(root_output_path),
         "available_triggers": trigger_names,
+        "missing_triggers": missing_triggers,
         "selection_status": {
             "hzz4l": "reference-compatible no-FSR port; MELA discriminants not evaluated",
-            "jets": "official NanoAODv15 AK4PUPPI Tight JetID recomputed; UParT ranking"
+            "jets": "AK4PUPPI JetID from NanoAOD when available, otherwise recomputed; b-tag ranking uses branch fallback"
         },
         "schema": {
             "input_has_jet_id": "Jet_jetId" in branches,
-            "jet_id_recomputed": True,
-            "btag_branch": config["jets"]["tagger"],
-            "warnings": ["Input Jet_jetId is absent; official v15 JetID is recomputed from jet constituents."]
+            "jet_id_recomputed": jet_selector.jet_id_recomputed,
+            "btag_branch": jet_selector.tagger,
+            "truth_matching_enabled": truth_enabled,
+            "warnings": warnings,
         },
         "cutflow": dict(counts),
         "selected_observables": {"mass4l": selected_m4l, "mass_bb": selected_mbb},
@@ -199,5 +268,4 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     ntuple.close(result["cutflow"])
-    root_file.Close()
     return result

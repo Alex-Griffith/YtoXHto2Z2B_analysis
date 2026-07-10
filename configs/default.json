@@ -1,4 +1,6 @@
 {
+  "sample_type": "auto",
+  "nanoaod_version": "auto",
   "signal": {
     "x_pdg_id": 45,
     "y_pdg_id": 35,
@@ -35,6 +37,11 @@
   },
   "jets": {
     "tagger": "Jet_btagUParTAK4B",
+    "tagger_fallbacks": [
+      "Jet_btagUParTAK4B",
+      "Jet_btagPNetB",
+      "Jet_btagDeepFlavB"
+    ],
     "jet_id_json": "/cvmfs/cms-griddata.cern.ch/cat/metadata/JME/Run3-24CDEReprocessingFGHIPrompt-Summer24-NanoAODv15/latest/jetid.json.gz",
     "jet_id_key": "AK4PUPPI_Tight",
     "cleaning_dr": 0.4

@@ -34,6 +34,19 @@ scripts/run_analysis.sh \
   outputs/signal_MX1000_MY300.root
 ```
 
+Quick compatibility test with official NanoAODv15 HH MC:
+
+```bash
+scripts/run_analysis.sh \
+  filelists/test_hh4l_v15_onefile.txt \
+  outputs/hh4l_v15_test.json \
+  outputs/hh4l_v15_test.root
+```
+
+This sample is a nonresonant `HH -> bbZZ* -> bb4l` sanity test, not the target
+`X -> YH` signal. It is mainly useful for checking the `4l`, `bb`, `mass4l`,
+`massbb`, `massbb4l`, and NanoAOD branch compatibility paths.
+
 The default physics and object definitions are in `configs/default.json`.
 The JSON contains the cutflow and configuration snapshot. The ROOT file
 contains a compact `Events` plotting tree with one row per processed event,
