@@ -1,0 +1,9 @@
+# sample: ZZto4L
+# sample_type: mc
+# nanoaod_version: v12
+# era: 2022 preEE
+# dataset: /ZZto4L_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5_ext1-v2/NANOAODSIM
+# source: old nonresonant sample list /eos/user/b/bfan/CMSSW_13_3_3/src/PhysicsTools/NanoAODTools/python/postprocessing/analysis/nanoAOD_skim/input_data_Files/sample_list_v12_2022.dat
+/store/mc/Run3Summer22NanoAODv12/ZZto4L_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5_ext1-v2/40000/32c3bde4-e10c-4135-93fb-1767720005a3.root
+/store/mc/Run3Summer22NanoAODv12/ZZto4L_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5_ext1-v2/40000/eb800d23-07f8-48b6-83d9-44b8f8478745.root
+/store/mc/Run3Summer22NanoAODv12/ZZto4L_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5_ext1-v2/2520000/c0d97e65-d150-4f1d-bc4b-3e36590932ee.root

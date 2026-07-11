@@ -1,0 +1,9 @@
+# sample: TTZ-ZtoQQ-1Jets
+# sample_type: mc
+# nanoaod_version: v12
+# era: 2022 preEE
+# dataset: /TTZ-ZtoQQ-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5-v2/NANOAODSIM
+# source: old nonresonant TTV list contains TTZ/TTW targets in /eos/user/b/bfan/CMSSW_13_3_3/src/PhysicsTools/NanoAODTools/python/postprocessing/analysis/nanoAOD_skim/input_data_Files/samples_Bkg_TTV.txt; this concrete DAS instance is the available Run3Summer22 NanoAODv12 TTZ naming.
+/store/mc/Run3Summer22NanoAODv12/TTZ-ZtoQQ-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5-v2/50000/6cd69159-6146-4978-8330-48b3cc3f5d92.root
+/store/mc/Run3Summer22NanoAODv12/TTZ-ZtoQQ-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5-v2/50000/45368aef-1823-4a80-b50e-dbeade766fca.root
+/store/mc/Run3Summer22NanoAODv12/TTZ-ZtoQQ-1Jets_TuneCP5_13p6TeV_amcatnloFXFX-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5-v2/50000/0bfc178f-121e-45b2-8cb3-3884c92ad69b.root

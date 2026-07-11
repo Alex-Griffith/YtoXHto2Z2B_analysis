@@ -1,0 +1,10 @@
+# sample: ZZto4L_2022_preEE
+# process_group: qqZZ
+# sample_type: mc
+# nanoaod_version: v12
+# era: 2022 preEE
+# dataset: /ZZto4L_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22NanoAODv12-130X_mcRun3_2022_realistic_v5_ext1-v2/NANOAODSIM
+# refreshed from DAS on 2026-07-11; kept separate from the historical smoke list
+/store/mc/Run3Summer22NanoAODv12/ZZto4L_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5_ext1-v2/2520000/02693b5f-6781-4f30-97be-fa9c444559f4.root
+/store/mc/Run3Summer22NanoAODv12/ZZto4L_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5_ext1-v2/2520000/0400e959-69f3-4890-88f1-1f360fd8370c.root
+/store/mc/Run3Summer22NanoAODv12/ZZto4L_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_v5_ext1-v2/2520000/0409dd6b-80d8-459e-b40a-13018d87be3d.root

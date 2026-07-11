@@ -1,0 +1,9 @@
+# sample: GluGlutoHHto2B2Zto4L_kl-1p00_kt-1p00_c2-0p00
+# sample_type: mc
+# nanoaod_version: v12
+# era: 2022 postEE
+# dataset: /GluGlutoHHto2B2Zto4L_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22EENanoAODv12-130X_mcRun3_2022_realistic_postEE_v6-v1/NANOAODSIM
+# source: old nonresonant submission file /eos/user/b/bfan/CMSSW_13_3_3/src/PhysicsTools/NanoAODTools/python/postprocessing/analysis/nanoAOD_skim/submit_condor_jobs_lnujj_Run3_Signal_2022.jdl
+root://cms-xrd-global.cern.ch//store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto2B2Zto4L_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_postEE_v6-v1/2540000/4fb597df-2acd-4ee8-bf4b-3129cd472b47.root
+root://cms-xrd-global.cern.ch//store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto2B2Zto4L_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_postEE_v6-v1/2540000/2bfe2589-1ff9-494b-9640-c158531daf65.root
+root://cms-xrd-global.cern.ch//store/mc/Run3Summer22EENanoAODv12/GluGlutoHHto2B2Zto4L_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/NANOAODSIM/130X_mcRun3_2022_realistic_postEE_v6-v1/2540000/d0856937-fb89-4213-9c18-f9b0e8246a7c.root

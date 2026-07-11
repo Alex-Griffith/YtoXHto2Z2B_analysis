@@ -4,11 +4,18 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from .hzz4l import select_hzz4l
+from .hzz4l import resolve_electron_hzz_id, select_hzz4l
 from .jets import JetSelector
 from .kinematics import add, delta_r
 from .ntuple import PlotNtuple
 from .truth import classify_signal
+
+
+SEQUENTIAL_STAGES = (
+    "all", "trigger", "four_leptons", "z_candidates", "ghost_removal",
+    "lepton_pt", "low_mass_pair_rejection", "hzz4l_candidate",
+    "two_clean_jets", "higgs_mass_window",
+)
 
 
 def _as_list(value):
@@ -75,8 +82,36 @@ def _infer_nanoaod_version(branches):
     return "unknown"
 
 
+def _normalization_info(is_mc, metadata):
+    """Resolve an optional luminosity normalization without inventing inputs."""
+    info = {
+        "status": "data_unit_weight" if not is_mc else "missing_metadata",
+        "formula": "genWeight * cross_section_pb * luminosity_fb * 1000 / sum_gen_weight",
+        "scale_per_gen_weight": 1.0 if not is_mc else None,
+        "missing_fields": [],
+    }
+    if not is_mc:
+        return info
+
+    required = ("cross_section_pb", "luminosity_fb", "sum_gen_weight")
+    missing = [name for name in required if metadata.get(name) is None]
+    info["missing_fields"] = missing
+    if missing:
+        return info
+
+    cross_section_pb = float(metadata["cross_section_pb"])
+    luminosity_fb = float(metadata["luminosity_fb"])
+    sum_gen_weight = float(metadata["sum_gen_weight"])
+    if sum_gen_weight == 0.0:
+        info["status"] = "invalid_zero_sum_gen_weight"
+        return info
+    info["status"] = "base_normalization_available"
+    info["scale_per_gen_weight"] = cross_section_pb * luminosity_fb * 1000.0 / sum_gen_weight
+    return info
+
+
 def run(input_path, config_path, output_path, max_events=-1, root_output_path=None,
-        sample_type=None, nanoaod_version=None):
+        sample_type=None, nanoaod_version=None, sample_metadata=None):
     import ROOT
 
     config = json.loads(Path(config_path).read_text())
@@ -95,6 +130,13 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
     requested_nanoaod_version = _resolve_nanoaod_version(config, nanoaod_version)
     resolved_sample_type = _resolve_sample_type(config, branches, sample_type)
     is_mc = resolved_sample_type == "mc"
+    resolved_metadata = dict(config.get("sample_metadata", {}))
+    resolved_metadata.update(sample_metadata or {})
+    resolved_metadata.update({
+        "sample_type": resolved_sample_type,
+        "nanoaod_version_requested": requested_nanoaod_version,
+    })
+    normalization = _normalization_info(is_mc, resolved_metadata)
     truth_branches = {"nGenPart", "GenPart_pdgId", "GenPart_status", "GenPart_genPartIdxMother"}
     truth_enabled = is_mc and truth_branches.issubset(branches)
     trigger_names = [name for name in config["triggers"] if name in branches]
@@ -104,6 +146,9 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
         warnings.append(f"Missing HLT branches skipped: {', '.join(missing_triggers)}")
     if is_mc and not truth_enabled:
         warnings.append("MC sample requested but truth GenPart branches are incomplete; truth matching skipped.")
+    electron_hzz_id = resolve_electron_hzz_id(branches)
+    if electron_hzz_id is None:
+        warnings.append("No supported HZZ electron ID branch found; electrons will fail HZZ ID.")
 
     jet_selector = JetSelector(objects, config["jets"], branches)
     warnings.extend(jet_selector.warnings)
@@ -112,6 +157,9 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
     ntuple = PlotNtuple(root_output_path, ROOT)
 
     counts = Counter()
+    sequential_counts = Counter({stage: 0 for stage in SEQUENTIAL_STAGES})
+    sequential_sum_gen_weight = Counter({stage: 0.0 for stage in SEQUENTIAL_STAGES})
+    sequential_sum_gen_weight2 = Counter({stage: 0.0 for stage in SEQUENTIAL_STAGES})
     decay_modes = Counter()
     selected_m4l = []
     selected_mbb = []
@@ -121,12 +169,16 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
     for entry in range(stop):
         tree.GetEntry(entry)
         counts["all"] += 1
+        event_gen_weight = (
+            float(getattr(tree, "genWeight", 1.0))
+            if is_mc and "genWeight" in branches else 1.0
+        )
 
         trigger_pass = any(bool(getattr(tree, name)) for name in trigger_names)
         if trigger_pass:
             counts["trigger"] += 1
 
-        hzz = select_hzz4l(tree, objects, config["hzz4l"])
+        hzz = select_hzz4l(tree, objects, config["hzz4l"], electron_hzz_id)
         for key in ("pass_four_leptons", "pass_z_candidates", "pass_ghost",
                     "pass_lepton_pt", "pass_qcd", "pass_zz", "pass_h_window"):
             if hzz[key]:
@@ -144,6 +196,24 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
             counts["selected_trigger_hzz4l_resolved2j"] += 1
         if pass_signal_region:
             counts["selected_signal_region"] += 1
+
+        sequential_flags = {
+            "all": True,
+            "trigger": trigger_pass,
+            "four_leptons": trigger_pass and hzz["pass_four_leptons"],
+            "z_candidates": trigger_pass and hzz["pass_z_candidates"],
+            "ghost_removal": trigger_pass and hzz["pass_ghost"],
+            "lepton_pt": trigger_pass and hzz["pass_lepton_pt"],
+            "low_mass_pair_rejection": trigger_pass and hzz["pass_qcd"],
+            "hzz4l_candidate": trigger_pass and hzz["pass_zz"],
+            "two_clean_jets": pass_baseline,
+            "higgs_mass_window": pass_signal_region,
+        }
+        for stage, passed in sequential_flags.items():
+            if passed:
+                sequential_counts[stage] += 1
+                sequential_sum_gen_weight[stage] += event_gen_weight
+                sequential_sum_gen_weight2[stage] += event_gen_weight * event_gen_weight
 
         truth = {}
         if truth_enabled:
@@ -166,7 +236,12 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
             "luminosityBlock": getattr(tree, "luminosityBlock", 0),
             "event": getattr(tree, "event", entry),
             "isMC": is_mc,
-            "genWeight": getattr(tree, "genWeight", 1.0) if is_mc and "genWeight" in branches else 1.0,
+            "genWeight": event_gen_weight,
+            "baseEventWeight": event_gen_weight,
+            "normalizedWeight": (
+                event_gen_weight * normalization["scale_per_gen_weight"]
+                if normalization["scale_per_gen_weight"] is not None else -99.0
+            ),
             "pileup_nTrueInt": getattr(tree, "Pileup_nTrueInt", -99.0) if is_mc and "Pileup_nTrueInt" in branches else -99.0,
             "nElectron": tree.nElectron, "nMuon": tree.nMuon, "nJet": tree.nJet,
             "nTightEle": hzz["n_tight_electrons"],
@@ -235,6 +310,13 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
             })
         ntuple.fill(row)
 
+    normalized_cutflow = {}
+    if normalization["scale_per_gen_weight"] is not None:
+        normalized_cutflow = {
+            stage: value * normalization["scale_per_gen_weight"]
+            for stage, value in sequential_sum_gen_weight.items()
+        }
+
     result = {
         "input": str(input_path),
         "inputs": input_files,
@@ -256,10 +338,17 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
             "input_has_jet_id": "Jet_jetId" in branches,
             "jet_id_recomputed": jet_selector.jet_id_recomputed,
             "btag_branch": jet_selector.tagger,
+            "electron_hzz_id": electron_hzz_id,
             "truth_matching_enabled": truth_enabled,
             "warnings": warnings,
         },
         "cutflow": dict(counts),
+        "sequential_cutflow": dict(sequential_counts),
+        "sequential_sum_gen_weight": dict(sequential_sum_gen_weight),
+        "sequential_sum_gen_weight2": dict(sequential_sum_gen_weight2),
+        "normalized_sequential_cutflow": normalized_cutflow,
+        "sample_metadata": resolved_metadata,
+        "normalization": normalization,
         "selected_observables": {"mass4l": selected_m4l, "mass_bb": selected_mbb},
         "reco_flavor_counts_for_valid_signal": dict(decay_modes),
         "config": config,
@@ -267,5 +356,12 @@ def run(input_path, config_path, output_path, max_events=-1, root_output_path=No
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
-    ntuple.close(result["cutflow"])
+    ntuple.close(
+        result["cutflow"],
+        sequential_cutflow=result["sequential_cutflow"],
+        metadata={
+            "sample_metadata": result["sample_metadata"],
+            "normalization": result["normalization"],
+        },
+    )
     return result

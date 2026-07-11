@@ -1,0 +1,9 @@
+# sample: MuonEG Run2022E
+# sample_type: data
+# nanoaod_version: v12
+# era: 2022E
+# dataset: /MuonEG/Run2022E-22Sep2023-v1/NANOAOD
+# source: old nonresonant data list /eos/user/b/bfan/CMSSW_13_3_3/src/PhysicsTools/NanoAODTools/python/postprocessing/analysis/nanoAOD_skim/input_data_Files/sample_list_v12_2022.dat
+/store/data/Run2022E/MuonEG/NANOAOD/22Sep2023-v1/2520000/0152de5e-691e-4ef9-b575-395dedf9d75f.root
+/store/data/Run2022E/MuonEG/NANOAOD/22Sep2023-v1/2520000/870f9e06-c8d0-46ab-8a42-e1434fcce6ee.root
+/store/data/Run2022E/MuonEG/NANOAOD/22Sep2023-v1/2520000/6384e94e-4446-4fe9-8ff9-3ef6e8bb6468.root

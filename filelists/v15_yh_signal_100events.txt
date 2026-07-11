@@ -1,0 +1,6 @@
+# sample: private X -> YH, Y -> bb, H -> ZZ(*) -> 4l signal
+# sample_type: mc
+# nanoaod_version: v15
+# mass point: MX=1000 GeV, MY=300 GeV
+# events: 100
+/eos/user/b/bfan/YtoXHto2Z2B_MC_generation/condor_nanoaod_1000/20260709T072256Z/job_0000_NANOAODSIM.root

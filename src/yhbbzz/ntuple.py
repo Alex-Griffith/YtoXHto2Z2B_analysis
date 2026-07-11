@@ -1,11 +1,12 @@
 """Small plotting ntuple inspired by the non-resonant H4L skim."""
 
+import json
 from array import array
 from pathlib import Path
 
 
 FLOAT_BRANCHES = (
-    "genWeight", "pileup_nTrueInt",
+    "genWeight", "baseEventWeight", "normalizedWeight", "pileup_nTrueInt",
     "mass4l", "mass4e", "mass4mu", "mass2e2mu",
     "pT4l", "eta4l", "phi4l", "rapidity4l",
     "massZ1", "pTZ1", "etaZ1", "phiZ1",
@@ -82,13 +83,22 @@ class PlotNtuple:
         self.values["event"][0] = int(row.get("event", 0))
         self.tree.Fill()
 
-    def close(self, cutflow=None):
+    def _write_cutflow(self, name, title, cutflow):
+        histogram = self.root.TH1D(name, title, len(cutflow), 0, len(cutflow))
+        for index, (label, count) in enumerate(cutflow.items(), 1):
+            histogram.GetXaxis().SetBinLabel(index, label)
+            histogram.SetBinContent(index, count)
+        histogram.Write()
+
+    def close(self, cutflow=None, sequential_cutflow=None, metadata=None):
         self.file.cd()
         self.tree.Write()
         if cutflow:
-            histogram = self.root.TH1D("Cutflow", "Event cutflow", len(cutflow), 0, len(cutflow))
-            for index, (label, count) in enumerate(cutflow.items(), 1):
-                histogram.GetXaxis().SetBinLabel(index, label)
-                histogram.SetBinContent(index, count)
-            histogram.Write()
+            self._write_cutflow("Cutflow", "Event cutflow", cutflow)
+        if sequential_cutflow:
+            self._write_cutflow(
+                "SequentialCutflow", "Sequential event cutflow", sequential_cutflow
+            )
+        if metadata is not None:
+            self.root.TObjString(json.dumps(metadata, sort_keys=True)).Write("SampleMetadata")
         self.file.Close()

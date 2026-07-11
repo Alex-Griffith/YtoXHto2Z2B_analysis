@@ -2,6 +2,8 @@ __pycache__/
 *.py[cod]
 *.root
 outputs/
+plots/
+condor/generated/
+backups/
 .pytest_cache/
 .venv/
-

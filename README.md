@@ -29,9 +29,17 @@ Run locally:
 
 ```bash
 scripts/run_analysis.sh \
-  /eos/user/b/bfan/YtoXHto2Z2B_MC_generation/condor_nanoaod_1000/20260709T072256Z/job_0000_NANOAODSIM.root \
+  filelists/v15_yh_signal_100events.txt \
   outputs/signal_MX1000_MY300.json \
   outputs/signal_MX1000_MY300.root
+```
+
+Make the validation plots for this 100-event private signal sample:
+
+```bash
+scripts/make_validation_plots.py \
+  outputs/signal_MX1000_MY300.root \
+  -o plots/validation/v15_yh_signal_100events
 ```
 
 Quick compatibility test with official NanoAODv15 HH MC:

@@ -1,0 +1,12 @@
++JobFlavour = "$(job_flavour)"
+universe = vanilla
+executable = condor/run_validation_job.sh
+arguments = "$(sample_name) $(sample_type) $(nanoaod_version) $(input_file) $(max_events) $(ProcId)"
+output = logs/validation/$(sample_name)/$(sample_name)_$(ProcId).out
+error = logs/validation/$(sample_name)/$(sample_name)_$(ProcId).err
+log = logs/validation/$(sample_name)/$(sample_name)_$(ProcId).log
+should_transfer_files = NO
+use_x509userproxy = true
+notification = ERROR
+request_cpus = 1
+queue input_file from $(queue_file)

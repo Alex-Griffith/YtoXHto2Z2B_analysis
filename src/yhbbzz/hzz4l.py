@@ -10,6 +10,38 @@ import itertools
 from .kinematics import add, delta_r
 
 
+_HZZ_MVA_CUTS = (
+    1.49603193295, 1.52414154008, 1.77694249574,
+    0.199463934736, 0.076063564084, -0.572118857519,
+)
+
+
+def resolve_electron_hzz_id(branches):
+    if "Electron_mvaIso_WPHZZ" in branches:
+        return "Electron_mvaIso_WPHZZ"
+    if "Electron_mvaHZZIso" in branches:
+        return "Electron_mvaHZZIso_recomputed_WPHZZ"
+    return None
+
+
+def _passes_electron_hzz_id(tree, i, mode):
+    if mode == "Electron_mvaIso_WPHZZ":
+        return bool(tree.Electron_mvaIso_WPHZZ[i])
+    if mode != "Electron_mvaHZZIso_recomputed_WPHZZ":
+        return False
+
+    pt = float(tree.Electron_pt[i])
+    if hasattr(tree, "Electron_superclusterEta"):
+        sc_eta = float(tree.Electron_superclusterEta[i])
+    elif hasattr(tree, "Electron_deltaEtaSC"):
+        sc_eta = float(tree.Electron_eta[i]) + float(tree.Electron_deltaEtaSC[i])
+    else:
+        sc_eta = float(tree.Electron_eta[i])
+    eta_category = 0 if abs(sc_eta) < 0.8 else 1 if abs(sc_eta) < 1.479 else 2
+    category = eta_category if pt < 10.0 else eta_category + 3
+    return float(tree.Electron_mvaHZZIso[i]) > _HZZ_MVA_CUTS[category]
+
+
 def _electron(tree, i):
     return {"kind": "e", "index": i, "pt": float(tree.Electron_pt[i]),
             "eta": float(tree.Electron_eta[i]), "phi": float(tree.Electron_phi[i]),
@@ -22,7 +54,7 @@ def _muon(tree, i):
             "mass": float(tree.Muon_mass[i]), "charge": int(tree.Muon_charge[i])}
 
 
-def select_leptons(tree, objects, cuts):
+def select_leptons(tree, objects, cuts, electron_hzz_id=None):
     electrons, muons = [], []
     for i in range(int(tree.nElectron)):
         loose = (float(tree.Electron_pt[i]) > objects["electron_pt_min"] and
@@ -30,7 +62,7 @@ def select_leptons(tree, objects, cuts):
                  abs(float(tree.Electron_sip3d[i])) < 4.0 and
                  abs(float(tree.Electron_dxy[i])) < 0.5 and
                  abs(float(tree.Electron_dz[i])) < 1.0)
-        if loose and bool(tree.Electron_mvaIso_WPHZZ[i]):
+        if loose and _passes_electron_hzz_id(tree, i, electron_hzz_id):
             electrons.append(_electron(tree, i))
 
     for i in range(int(tree.nMuon)):
@@ -77,8 +109,8 @@ def _passes_smart_cut(four, chosen_z1, cuts):
     return True
 
 
-def select_hzz4l(tree, objects, cuts):
-    electrons, muons = select_leptons(tree, objects, cuts)
+def select_hzz4l(tree, objects, cuts, electron_hzz_id=None):
+    electrons, muons = select_leptons(tree, objects, cuts, electron_hzz_id)
     leptons = electrons + muons
     result = {"n_tight_electrons": len(electrons), "n_tight_muons": len(muons),
               "tight_leptons": leptons, "pass_four_leptons": len(leptons) >= 4,
