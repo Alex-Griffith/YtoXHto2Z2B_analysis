@@ -29,11 +29,14 @@ printf 'host=%s\ndate_utc=%s\njob_index=%s\ninput=%s\nsample=%s\nprocess_group=%
 
 SCRATCH=${_CONDOR_SCRATCH_DIR:-${PWD}}
 REPO_DIR=${REPO_DIR:-${SCRATCH}}
-CMSSW_RELEASE=${CMSSW_RELEASE:-/eos/user/b/bfan/CMSSW_13_3_3}
+SCRAM_ARCH=${SCRAM_ARCH:-el9_amd64_gcc12}
+CMSSW_RELEASE=${CMSSW_RELEASE:-/cvmfs/cms.cern.ch/${SCRAM_ARCH}/cms/cmssw/CMSSW_13_3_3}
 cd "${SCRATCH}"
 
 set +u
 source /cvmfs/cms.cern.ch/cmsset_default.sh
+export SCRAM_ARCH
+test -d "${CMSSW_RELEASE}"
 cd "${CMSSW_RELEASE}"
 eval "$(scram runtime -sh)"
 set -u
